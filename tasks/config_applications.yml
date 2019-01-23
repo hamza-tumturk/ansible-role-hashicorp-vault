@@ -1,0 +1,151 @@
+---
+
+- name: Config Applications - Retrieve applications from etcd
+  uri:
+    url: "{{ vault_storage_backend }}"
+    method: GET
+    body_format: json
+    status_code: 200
+  register: vault_apps_output
+  when: vault_applications is not defined
+
+- name: Config Applications - Make application list
+  set_fact:
+    vault_apps_item: "{{ item | basename | lower }}"
+  with_items:
+    - "{{ vault_apps_output.json.node.nodes | selectattr('key', 'defined') | map(attribute='key') | list }}"
+  register: vault_apps_item_output
+  when: vault_applications is not defined
+
+- set_fact:
+    vault_applications: "{{ vault_apps_item_output.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.vault_apps_item') | list }}"
+  when: vault_applications is not defined
+
+#### SETUP Application Secret Paths
+
+- name: Config Applications - Read current secret list
+  uri:
+    url: "{{ vault_addr }}/v1/secret/applications/?list=true"
+    method: "GET"
+    body_format: json
+    headers:
+      X-Vault-Token: "{{ vault_root_token }}"
+    status_code: 200,404
+    validate_certs: false
+    return_content: true
+  register: vault_secrets_current_output
+  no_log: true
+
+- set_fact:
+    vault_secrets_current_output:
+      json:
+        data:
+          keys: []
+  when: vault_secrets_current_output.json.data is not defined
+
+- name: Config Application - Make secret config list
+  set_fact:
+    vault_approles_secret: 
+      path: "/secret/applications/{{ item }}/welcome"
+      method: POST
+      parameters:
+        key: "Hello World"
+  with_items:
+    - "{{ vault_applications }}"
+  when:
+    - item + '/' not in vault_secrets_current_output.json['data']['keys']
+  register: 
+    vault_secrets_output
+
+- set_fact:
+    vault_customs: "{{ vault_customs + vault_secrets_output.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.vault_approles_secret') | list }}"
+
+#### SETUP Application Policies
+
+- name: Config Application - Read current policy list
+  uri:
+    url: "{{ vault_addr }}/v1/sys/policy"
+    method: "GET"
+    body_format: json
+    headers:
+      X-Vault-Token: "{{ vault_root_token }}"
+    status_code: 200
+    validate_certs: false
+    return_content: true
+  register: vault_policies_current_output
+
+- name: Config Application - Make policy config list with FULL access
+  set_fact:
+    vault_policy_item:
+      path: "/sys/policy/{{ item }}-full"
+      method: PUT
+      parameters:
+         rules: "path \"/secret/applications/{{ item }}/*\" { capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\"] }"
+  with_items:
+    - "{{ vault_applications }}"
+  when:
+    - item + '-full' not in vault_policies_current_output.json['data']['keys']
+  register:
+    vault_policies_full_output
+
+- set_fact:
+    vault_customs: "{{ vault_customs + vault_policies_full_output.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.vault_policy_item') | list }}"
+
+- name: Config Application - Make policy config list with READ access
+  set_fact:
+    vault_policy_item:
+      path: "/sys/policy/{{ item }}-read"
+      method: PUT
+      parameters:
+         rules: "path \"/secret/applications/{{ item }}/*\" { capabilities = [\"read\"] }"
+  with_items:
+    - "{{ vault_applications }}"
+  when:
+    - item + '-read' not in vault_policies_current_output.json['data']['keys']
+  register:
+    vault_policies_read_output
+
+- set_fact:
+    vault_customs: "{{ vault_customs + vault_policies_read_output.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.vault_policy_item') | list }}"
+
+#### SETUP AppRoles
+
+- name: Config Application - Read current AppRole list
+  uri:
+    url: "{{ vault_addr }}/v1/auth/approle/role?list=true"
+    method: "GET"
+    body_format: json
+    headers:
+      X-Vault-Token: "{{ vault_root_token }}"
+    status_code: 200,404
+    validate_certs: false
+    return_content: true
+  register: vault_approles_current_output
+
+- set_fact:
+    vault_approles_current_output:
+      json:
+        data:
+          keys: []
+  when: vault_approles_current_output.json.data is not defined
+
+- name: Config Application - Make approle config list with read policy
+  set_fact:
+    vault_policy_item:
+      path: "/auth/approle/role/{{ item }}"
+      method: POST
+      parameters:
+        token_ttl: "1440m"
+        token_max_ttl: "1440m"
+        policies: "{{ item }}-read"
+        period: 0
+        bind_secret_id: true
+  with_items:
+    - "{{ vault_applications }}"
+  when:
+    - item not in vault_approles_current_output.json['data']['keys']
+  register:
+    vault_approles_output
+
+- set_fact:
+    vault_customs: "{{ vault_customs + vault_approles_output.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.vault_policy_item') | list }}"

@@ -1,0 +1,30 @@
+# {{ ansible_managed }}
+{% for dict_item in vault_config_params %}
+{% for key, value in dict_item.items() %}
+  {{key}} = "{{value}}"
+{% endfor %}
+{% endfor %}
+
+listener "tcp" {
+{% for dict_item in vault_config_listener_params %}
+{% for key, value in dict_item.items() %}
+  {{key}} = "{{value}}"
+{% endfor %}
+{% endfor %}
+}
+
+storage "{{ vault_config_storage }}" {
+{% for dict_item in vault_config_storage_params %}
+{% for key, value in dict_item.items() %}
+  {{key}} = "{{value}}"
+{% endfor %}
+{% endfor %}
+}
+
+telemetry {
+{% for dict_item in vault_config_telemetry_params %}
+{% for key, value in dict_item.items() %}
+  {{key}} = "{{value}}"
+{% endfor %}
+{% endfor %}
+}

@@ -1,0 +1,20 @@
+{{ vault_log_dir }}/vault.log {
+         size 100M
+         copytruncate
+         rotate 2
+         compress
+         missingok
+         notifempty
+}
+
+{{ vault_log_dir }}/audit.log
+{
+         daily
+         copytruncate
+         rotate 7
+         compress
+         delaycompress
+         size 50M
+         missingok
+         notifempty
+}

@@ -1,0 +1,109 @@
+---
+- name: install - Install unarchive support & libcap2-bin packages
+  package:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - zip
+    - libcap2-bin
+
+- name: install - Create vault group
+  group:
+    name: "{{ vault_group }}"
+    system: yes
+    state: present
+
+- name: install - Create vault user
+  become: yes
+  user:
+    name: "{{ vault_user }}"
+    shell: /bin/sh
+    createhome: no
+    group: "{{ vault_group }}"
+    system: yes
+    state: present
+
+- name: install - Create directories
+  file:
+    dest: "{{ item }}"
+    state: directory
+    owner: "{{ vault_user }}"
+    group: "{{ vault_user }}"
+    mode: 0755
+  with_items:
+    - "{{ vault_cache_dir }}"
+    - "{{ vault_bin_dir }}"
+
+- name: install - Grab vault binary from artefact store
+  get_url:
+    url: "{{ vault_versions[vault_version]['url'] }}"
+    dest: "{{ vault_cache_dir }}/{{ vault_version }}.zip"
+    checksum: "sha256:{{ vault_versions[vault_version]['sha256'] }}"
+
+- name: install - Install vault binary
+  unarchive:
+    remote_src: true
+    src: "{{ vault_cache_dir }}/{{ vault_version }}.zip"
+    dest: "{{ vault_bin_dir }}"
+    creates: "{{ vault_bin_dir }}/vault"
+
+- name: install - Copy vault config
+  template:
+    src: config.hcl.j2
+    dest: "{{ vault_bin_dir }}/config.hcl"
+  become: true
+
+- name: install - Set binary permissions
+  file:
+    dest: "{{ vault_bin_dir }}/vault"
+    mode: 0755
+    owner: "{{ vault_user }}"
+    group: "{{ vault_user }}"
+
+- name: install - Create binary symlinks
+  file:
+    src: "{{ vault_bin_dir }}/vault"
+    dest: "/usr/local/bin/vault"
+    state: link
+
+- name: install - Give vault access to mlock syscall
+  become: yes
+  capabilities:
+    path: "{{ vault_bin_dir }}/vault"
+    capability: 'cap_ipc_lock+ep'
+    state: present
+
+- name: install - Setup logrotate
+  template:
+    src: logrotate.d.j2
+    dest: "{{ vault_logrotate_conf_path }}"
+
+- name: install - Install shell config snippets
+  template:
+    dest: /etc/profile.d/{{ item }}
+    src: profile.d-{{ item }}.j2
+    mode: 0644
+    owner: root
+    group: root
+  with_items:
+    - vault.csh
+    - vault.sh
+
+- name: install - Setup systemd
+  template:
+    src: vault.service.j2
+    dest: /etc/systemd/system/vault.service
+    owner: root
+    group: root
+  when:
+    - ansible_distribution_release == 'xenial'
+
+- name: install - Enable vault service
+  service:
+    name: vault
+    enabled: yes
+
+- name: install - Restart vault service
+  service:
+    name:  vault
+    state: restarted

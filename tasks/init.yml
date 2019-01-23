@@ -1,0 +1,67 @@
+---
+- name: init - Checkout gpg keys repo
+  git:
+    repo: "{{ vault_gpg_repo }}"
+    dest: /tmp/vault
+    clone: yes
+    update: yes
+  connection: local
+
+- name: init - Read gpg keys file
+  slurp:
+    src: "/tmp/vault/{{ vault_gpg_keys }}"
+  register: vault_gpg_keys
+  connection: local
+
+- set_fact:
+    vault_gpg_keys_array: "{{ (vault_gpg_keys.content | b64decode | trim).split('\n') }}"
+
+- set_fact:
+    vault_gpg_shares: "{{ vault_gpg_keys_array | length }}"
+
+- name: init - Run initialization
+  uri:
+    url: "{{ vault_addr }}/v1/sys/init"
+    body: "{ \"secret_shares\": {{ vault_gpg_shares }}, \"secret_threshold\": 2, \"pgp_keys\": {{ vault_gpg_keys_array | to_json }} }"
+    body_format: json
+    method: PUT
+    headers:
+      Content-Type: "application/x-www-form-urlencoded"
+    return_content: yes
+    validate_certs: false
+  register: vault_init_response
+
+- set_fact:
+    vault_keys: "{{ vault_init_response.json }}"
+
+- name: init - Put unseal keys to etcd
+#  uri:
+#    url: "{{ vault_storage_backend }}/vault-keys/{{ lookup('env','ENVIRONMENT') }}/unseal-key-{{ item.0 + 1 }}"
+#    method: PUT
+#    body: "value={{ item.1 }}"
+#    headers:
+#      Content-Type: "application/x-www-form-urlencoded"
+  shell: |
+    curl {{ vault_storage_backend }}/vault-keys/{{ lookup('env','ENVIRONMENT') }}/unseal-key-{{ item.0 + 1 }} \
+    --request PUT \
+    --data-urlencode \
+    value={{ item.1 }}
+  with_indexed_items:
+    - "{{ vault_keys.keys_base64 }}"
+  when:
+    - vault_keys.keys_base64 is defined
+
+
+- name: init - Put root-token to etcd
+  uri:
+    url: "{{ vault_storage_backend }}/vault-keys/{{ lookup('env','ENVIRONMENT') }}/root-token"
+    method: PUT
+    body: "value={{ vault_keys.root_token }}"
+    status_code: 201
+    headers:
+      Content-Type: "application/x-www-form-urlencoded"
+  when:
+    - vault_keys.root_token is defined
+
+- debug:
+    msg: "Initialization of Vault completed. Unseal Vault manually with the vault-tool.sh and run next Stage manually"

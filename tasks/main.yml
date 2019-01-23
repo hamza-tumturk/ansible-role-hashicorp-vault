@@ -1,0 +1,34 @@
+---
+# tasks file for roles/install-hashicorp-vault
+
+- name: Install Vault Server
+  include: install.yml
+  when:
+    - tasks_to_run is defined
+    - "'install' in tasks_to_run"
+
+- include: tasks/health.yml
+  when:
+    - tasks_to_run is defined
+    - "'init' in tasks_to_run"
+
+- name: Initialize Vault Backend
+  include: init.yml
+  when:
+    - tasks_to_run is defined
+    - "'init' in tasks_to_run"
+    - vault_health_api.json.initialized != true
+  become: false
+  run_once: true
+
+- include: tasks/health.yml
+  when:
+    - tasks_to_run is defined
+    - "'config' in tasks_to_run"
+
+- include: config.yml
+  when:
+    - tasks_to_run is defined
+    - "'config' in tasks_to_run"
+    - vault_health_api.json.sealed == false
+  run_once: true

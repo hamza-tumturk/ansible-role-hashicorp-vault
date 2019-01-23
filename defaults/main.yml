@@ -1,0 +1,104 @@
+---
+# defaults file for roles/install-hashicorp-vault
+
+vault_version: 0.7.3
+vault_artefact_url: "https://releases.hashicorp.com/vault/{{ vault_version }}"
+vault_versions:
+  0.7.0:
+    url: "{{ vault_artefact_url }}/vault_0.7.0_linux_amd64.zip"
+    sha256: c6d97220e75335f75bd6f603bb23f1f16fe8e2a9d850ba59599b1a0e4d067aaa
+  0.7.3:
+    url: "{{ vault_artefact_url }}/vault_0.7.3_linux_amd64.zip"
+    sha256: 2822164d5dd347debae8b3370f73f9564a037fc18e9adcabca5907201e5aab45
+
+vault_bin_dir: "/opt/vault"
+vault_cache_dir: "/var/cache/vault"
+vault_log_dir: "/var/log/vault"
+vault_user: vault
+vault_group: vault
+vault_logrotate_conf_path: "/etc/logrotate.d/vault"
+
+vault_root_token: "" # Used for configuring vault
+
+## Vault configuration - check official documentation for parameters:
+## https://www.vaultproject.io/docs/configuration/index.html
+
+# Vault configuration parameters
+vault_config_params:
+  - cluster_name: "vault-cluster"
+  - default_lease_ttl: "768h"
+  - max_lease_ttl: "768h"
+
+# Vault listener parameters
+vault_config_listener_params:
+  http:
+    - address: "0.0.0.0:8200"
+    - tls_disable: true
+
+# Vault storage backend
+vault_config_storage: file
+vault_config_storage_params:
+  - path: "/var/vault"
+
+# Vault telemetry parameters
+#vault_config_telemetry_params:
+#  - statsite_address: "127.0.0.1:8125"
+
+vault_addr: "http://127.0.0.1:8200" # Environment set in profiles for vault client
+
+vault_github_org: ""
+vault_github_api_token: ""
+
+vault_secret_backends: []
+#vault_secret_backends:
+#  - path: "/sys/mounts/generic"
+#    method: POST
+#    parameters:
+#      type: "generic"
+#      description: "Generic secret backend"
+#      config:
+#        force_no_cache: true
+
+vault_system_backends: []
+#vault_system_backends:
+#  - path: "/sys/audit/local"
+#    method: PUT
+#    parameters:
+#      description: "Local audit log"
+#      type: "file"
+#      options:
+#        path: "/var/log/vault/audit.log"
+#  - path: "/sys/auth/ldap"
+#    method: POST
+#    parameters:
+#      type: "ldap"
+#      description: "LR AD"
+
+vault_auth_backends: []
+#vault_auth_backends:
+#  - path: "/auth/ldap/config"
+#    method: POST
+#    parameters:
+#      url: "ldap://"
+#      userattr: "sAMAccountName"
+#      userdn: "DC=sub,DC=domain,DC=com"
+#      groupdn: "DC=sub,DC=domain,DC=com"
+#      groupfilter: "(&(objectClass=group)(member:1.2.840.113556.1.4.1941:={{ '{{' }}.UserDN{{ '}}' }}))"
+#      groupattr: "cn"
+#      binddn: "CN=user,OU=group,DC=sub,DC=domain,DC=com"
+#      bindpass: "password"
+#      insecure_tls: "true"
+#      starttls: "false"
+#  - path: "/auth/ldap/groups/admins"
+#    method: POST
+#    parameters:
+#      policies: "admin,root"
+
+vault_policies: []
+#vault_policies:
+#  - path: "/sys/policy/admin"
+#    method: PUT
+#    parameters:
+#      rules: "path \"*\" { capabilities = [\"sudo\",\"create\", \"read\", \"update\", \"delete\", \"list\"] }"
+
+vault_customs: []

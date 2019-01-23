@@ -1,0 +1,46 @@
+---
+- name: Retrieve root-token
+  uri:
+    url: "{{ vault_storage_backend }}/vault-keys/{{ lookup('env','ENVIRONMENT') }}/root-token"
+    method: GET
+    body_format: json
+  register: vault_root_token_mapped
+  no_log: true
+  when: vault_root_token == ""
+
+- set_fact:
+    vault_root_token: "{{ vault_root_token_mapped.json.node.value }}" 
+  no_log: true
+  when: vault_root_token_mapped is defined
+
+- include: tasks/config_teams.yml
+  run_once: true
+  when:
+    - vault_github_org is defined
+    - vault_github_api_token != ""
+
+- include: tasks/config_applications.yml
+  run_once: true
+
+- name: Setup backends
+  uri:
+    url: "{{ vault_addr }}/v1{{ item.path }}"
+    method: "{{ item.method }}"
+    body: "{{ item.parameters | to_json }}"
+    body_format: json
+    headers:
+      X-Vault-Token: "{{ vault_root_token }}"
+    status_code: 204
+    validate_certs: false
+    return_content: true
+  with_items:
+    - "{{ vault_secret_backends }}"
+    - "{{ vault_system_backends }}"
+    - "{{ vault_auth_backends }}"
+    - "{{ vault_policies }}"
+    - "{{ vault_customs }}"
+  register: setup_backends
+  failed_when:
+    - (setup_backends.status != 400) and ("'path is already in use' not in setup_backends.json")
+    - setup_backends.status != 204
+  no_log: true

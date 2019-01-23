@@ -1,0 +1,15 @@
+# {{ ansible_managed }}
+[Unit]
+Description=HashiCorp's Vault Secrets Store Server
+After=network-online.target
+
+[Service]
+Type=simple
+User={{ vault_user }}
+Group={{ vault_group }}
+Restart=on-failure
+PIDFile={{ vault_bin_dir }}/vault.pid
+ExecStart=/usr/local/bin/vault server -config={{ vault_bin_dir }}/config.hcl
+
+[Install]
+WantedBy=multi-user.target

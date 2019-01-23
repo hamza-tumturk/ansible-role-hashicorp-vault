@@ -1,0 +1,15 @@
+---
+- name: Retrieve Vault server status
+  uri:
+    url: "https://vault-{{ lookup('env','ENVIRONMENT') }}{{ play_hosts.index(inventory_hostname) + 1 | int }}.{{ (gen_overmind_compose.dns | last).split('.')[-2:] | join('.') }}:8200/v1/sys/health"
+    method: GET
+    body_format: json
+    status_code: 200,429,501,503
+  until: (vault_health_api.status == 200) or
+         (vault_health_api.status == 429) or
+         (vault_health_api.status == 501) or
+         (vault_health_api.status == 503)
+  retries: 20
+  delay: 3
+  become: false
+  register: vault_health_api

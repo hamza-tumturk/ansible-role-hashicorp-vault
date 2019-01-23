@@ -1,0 +1,17 @@
+# Ansible managed
+  cluster_name = "vault-cluster"
+  default_lease_ttl = "768h"
+  max_lease_ttl = "768h"
+
+listener "tcp" {
+  address = "127.0.0.1:8200"
+}
+
+storage "file" {
+  path = "/var/vault"
+}
+
+telemetry {
+  statsite_address = "127.0.0.1:8125"
+  disable_hostname = "True"
+}

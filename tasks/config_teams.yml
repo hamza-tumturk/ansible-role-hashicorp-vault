@@ -1,0 +1,43 @@
+---
+- name: Config Github - Retrieve Teams
+  uri:
+    url: "https://api.github.com/orgs/{{ vault_github_org }}/teams"
+    method: GET
+    body_format: json
+    headers:
+      Authorization: "token {{ vault_github_api_token }}"
+  register: vault_github_teams_output
+
+- name: Config Github - Teamlist
+  debug:
+    msg: "{{ vault_github_teams_output.json | selectattr('slug', 'defined') | map(attribute='slug') | list }}"
+
+- uri:
+    url: "{{ vault_addr }}/v1{{ vault_github_path }}/map/teams"
+    method: "GET"
+    body_format: json
+    headers:
+      X-Vault-Token: "{{ vault_root_token }}"
+    status_code: 200,404
+    validate_certs: false
+    return_content: true
+  register: vault_github_teams_current_output
+  no_log: true
+
+- name: Config Github - Make config list
+  set_fact:
+    vault_github_teams: 
+      path: "{{ vault_github_path }}/map/teams/{{ item }}"
+      method: POST
+      parameters:
+        value: "default"
+  with_items:
+    - "{{ vault_github_teams_output.json | selectattr('slug', 'defined') | map(attribute='slug') | list }}"
+  when:
+    - vault_github_teams_current_output.status == '404'
+    - item not in vault_github_teams_current_output.json['data']['keys']
+  register: 
+    vault_github_teams_output
+
+- set_fact:
+    vault_customs: "{{ vault_customs + vault_github_teams_output.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.vault_github_teams') | list }}"

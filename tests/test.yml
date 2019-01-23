@@ -1,0 +1,45 @@
+---
+- hosts: localhost
+
+  tasks:
+    - name: create temporary build directory
+      tempfile:
+        state: directory
+      register: gpg_dir
+      tags: test
+
+    - debug:
+        msg: "{{ gpg_dir }}"
+      tags: test
+#  - name: Retrieve vault url
+#    shell: |
+#      curl --silent https://releases.hashicorp.com/index.json | \
+#      jq --raw-output ".vault | .versions | to_entries | .[] | \
+#      select(.key==\"{{ vault_version }}\") | .value.builds | .[] | \
+#      select(.arch==\"amd64\") | \
+#      select(.os==\"linux\") | .url"
+#    register: retrieve_url
+
+#  - uri:
+#      url: https://releases.hashicorp.com/index.json
+#      method: GET
+#      body: json
+#      body_format: json
+#      return_content: yes
+#      validate_certs: no
+#    register: json_response
+
+#  - debug: msg="Error - undefined tag"
+#    when: json_response["non_existent_tag"] is not defined
+
+#  - set_fact:
+#      newrelic_mysql_servers: "{{ newrelic_mysql_servers|map('combine',dict(mysql_passwd=item.password))|list }}"
+#      with_items:
+#        - "{{ mariadb_mysql_users|selectattr('name', 'match', 'newrelic')|list }}"
+#      tags: newrelic-plugins
+
+#  - debug:
+#     var: newrelic_mysql_servers
+
+#  - set_fact:
+#      vault_version_url: retrieve_url.stdout

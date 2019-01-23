@@ -7,16 +7,12 @@ This Role does not initialize the Vault Storage Backend. It needs to be done man
 Role Variables
 --------------
 
-    vault_version: 0.7.3
+    vault_version: x.x.x
     vault_artefact_url: "https://releases.hashicorp.com/vault/{{ vault_version }}"
     vault_versions:
-      0.7.0:
-        url: "{{ vault_artefact_url }}/vault_0.7.0_linux_amd64.zip"
-        sha256: c6d97220e75335f75bd6f603bb23f1f16fe8e2a9d850ba59599b1a0e4d067aaa
-      0.7.3:
-        url: "{{ vault_artefact_url }}/vault_0.7.3_linux_amd64.zip"
-        sha256: 2822164d5dd347debae8b3370f73f9564a037fc18e9adcabca5907201e5aab45
-    
+      x.x.x:
+        url: "{{ vault_artefact_url }}/vault_x.x.x_linux_amd64.zip"
+        sha256: 
     vault_bin_dir: /opt/vault
     vault_cache_dir: /var/cache/vault
     vault_user: vault

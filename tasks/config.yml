@@ -1,27 +1,4 @@
 ---
-- name: Retrieve root-token
-  uri:
-    url: "{{ vault_storage_backend }}/vault-keys/{{ lookup('env','ENVIRONMENT') }}/root-token"
-    method: GET
-    body_format: json
-  register: vault_root_token_mapped
-  no_log: true
-  when: vault_root_token == ""
-
-- set_fact:
-    vault_root_token: "{{ vault_root_token_mapped.json.node.value }}" 
-  no_log: true
-  when: vault_root_token_mapped is defined
-
-- include: tasks/config_teams.yml
-  run_once: true
-  when:
-    - vault_github_org is defined
-    - vault_github_api_token != ""
-
-- include: tasks/config_applications.yml
-  run_once: true
-
 - name: Setup backends
   uri:
     url: "{{ vault_addr }}/v1{{ item.path }}"

@@ -1,22 +1,7 @@
 ---
-- name: init - Checkout gpg keys repo
-  git:
-    repo: "{{ vault_gpg_repo }}"
-    dest: /tmp/vault
-    clone: yes
-    update: yes
-  connection: local
 
-- name: init - Read gpg keys file
-  slurp:
-    src: "/tmp/vault/{{ vault_gpg_keys }}"
-  register: vault_gpg_keys
-  connection: local
-
-- set_fact:
-    vault_gpg_keys_array: "{{ (vault_gpg_keys.content | b64decode | trim).split('\n') }}"
-
-- set_fact:
+- name: Count amount of gpg used to unsead Vault
+  set_fact:
     vault_gpg_shares: "{{ vault_gpg_keys_array | length }}"
 
 - name: init - Run initialization
@@ -34,32 +19,17 @@
 - set_fact:
     vault_keys: "{{ vault_init_response.json }}"
 
-- name: init - Put unseal keys to etcd
-#  uri:
-#    url: "{{ vault_storage_backend }}/vault-keys/{{ lookup('env','ENVIRONMENT') }}/unseal-key-{{ item.0 + 1 }}"
-#    method: PUT
-#    body: "value={{ item.1 }}"
-#    headers:
-#      Content-Type: "application/x-www-form-urlencoded"
-  shell: |
-    curl {{ vault_storage_backend }}/vault-keys/{{ lookup('env','ENVIRONMENT') }}/unseal-key-{{ item.0 + 1 }} \
-    --request PUT \
-    --data-urlencode \
-    value={{ item.1 }}
+- name: init - Output vault unseal keys
+  debug:
+    msg: "{{ item }}"
   with_indexed_items:
     - "{{ vault_keys.keys_base64 }}"
   when:
     - vault_keys.keys_base64 is defined
 
-
-- name: init - Put root-token to etcd
-  uri:
-    url: "{{ vault_storage_backend }}/vault-keys/{{ lookup('env','ENVIRONMENT') }}/root-token"
-    method: PUT
-    body: "value={{ vault_keys.root_token }}"
-    status_code: 201
-    headers:
-      Content-Type: "application/x-www-form-urlencoded"
+- name: init - Output root token
+  debug:
+    msg: "{{ vault_keys.root_token }}"
   when:
     - vault_keys.root_token is defined
 

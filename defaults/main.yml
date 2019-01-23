@@ -49,9 +49,6 @@ vault_config_storage_params:
 
 vault_addr: "http://127.0.0.1:8200" # Environment set in profiles for vault client
 
-vault_github_org: ""
-vault_github_api_token: ""
-
 vault_secret_backends: []
 #vault_secret_backends:
 #  - path: "/sys/mounts/generic"

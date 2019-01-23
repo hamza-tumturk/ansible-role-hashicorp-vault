@@ -2,7 +2,6 @@ Role Name
 =========
 
 Ansible Role to install and configure a Hashicorp Vault Server.
-This Role does not initialize the Vault Storage Backend. It needs to be done manually. See section Initializing.
 
 Role Variables
 --------------

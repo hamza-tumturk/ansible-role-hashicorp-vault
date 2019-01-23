@@ -1,7 +1,7 @@
 ---
 # defaults file for roles/install-hashicorp-vault
 
-vault_version: 0.7.3
+vault_version: 1.0.2
 vault_artefact_url: "https://releases.hashicorp.com/vault/{{ vault_version }}"
 vault_versions:
   0.7.0:
@@ -10,6 +10,9 @@ vault_versions:
   0.7.3:
     url: "{{ vault_artefact_url }}/vault_0.7.3_linux_amd64.zip"
     sha256: 2822164d5dd347debae8b3370f73f9564a037fc18e9adcabca5907201e5aab45
+  1.0.2:
+    url: "{{ vault_artefact_url }}/vault_1.0.2_linux_amd64.zip"
+    sha256: 5549714c24b61ea77a7afb30e1fbff6ec596cfd39dab7a2e6cf7e71432d616cc
 
 vault_bin_dir: "/opt/vault"
 vault_cache_dir: "/var/cache/vault"

@@ -1,4 +1,4 @@
-Role Name
+ansible-role-hashicorp-vault
 =========
 
 Ansible Role to install and configure a Hashicorp Vault Server.
